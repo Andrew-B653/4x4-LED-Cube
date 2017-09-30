@@ -1,12 +1,12 @@
 void setup() {
-  DDRD = B11111110;
-  DDRB = B11111;
-  DDRC = B101111;  
-  Serial.begin(115200);
-  randomSeed(analogRead(5));
-  PORTC = B100000;
+  DDRD = B11111110;   // Sets pins 1-7 of Port D as outputs
+  DDRB = B11111;      // Sets pins 0-4 (digital out 8-12) of Port B as outputs
+  DDRC = B1111;     // Sets pins 0-3 (Analog pins) of Port C as outputs
+  Serial.begin(115200); // Sets up serial communication with baud rate of 115200 (for bluetooth)
+  randomSeed(analogRead(5));  // Sets up randomization for animation use  
 }
 
+// Declaration of functions used in this project
 void displayCube(int);
 void cubeClear();
 void displayLayer(int, int);
@@ -24,6 +24,11 @@ void animationTwinkle();
 void copySingleFrame(int[][4][4], int);
 void copyAnimationFrame(byte [][4][4][4], int);
 
+// This program has several multidimensional arrays for programming the cube, listed below:
+
+// cubeDisplay is a 4x4x4 matrix which functions as the current display for the cube.
+// It is continuously updated to create an animation effect in this particular program.
+// The first 4x4 entry corresponds to the bottom layer of the cube, and the last to the top layer.
 int cubeDisplay[][4][4] = {
   {
       {0,0,0,0},
@@ -51,6 +56,8 @@ int cubeDisplay[][4][4] = {
     }
 };
 
+// This array serves as a blank slate when executing Conway's game of life in the
+// function executeConway()
 int cubeConway[][4][4] = {
   {
       {0,0,0,0},
@@ -78,6 +85,7 @@ int cubeConway[][4][4] = {
     }
 };
 
+// This array sets up the animation in the function animationWaveLongUpdate()
 int cubeLong[][4][4] = {
   {
       {1,3,7,15},
@@ -91,6 +99,7 @@ int cubeLong[][4][4] = {
       {1,3,7,15},
       {1,3,7,15}
     },
+    
     {
       {1,3,7,15},
       {1,3,7,15},
@@ -105,6 +114,9 @@ int cubeLong[][4][4] = {
     }
 };
 
+
+// This array is used to display the main menu, which cycles through
+// the numbers 1-9 (only  through 3 currently)
 byte cubeMenu[][4][4][4] = 
 {  
 /////////////////////////1
@@ -643,7 +655,9 @@ byte cubeAnimation[][4][4][4] =
   }
 };
 
-int snakeDisplay[][4][4] = {
+// This array is not used yet
+// The purpose of this array is to update the Worm game display
+int wormDisplay[][4][4] = {
   {
       {0,0,0,0},
       {0,0,0,0},
@@ -672,16 +686,16 @@ int snakeDisplay[][4][4] = {
 
 int i,j,k; // "for" loop variables
 int ANIMATION_INDEX = 0; // used to iterate through cubeAnimation animation frames
-int ANIMATION = 0;
-int NUM_OF_ANIMATIONS = 6;
-int ANIMATION_SPEED[] = {3,3,3,12,5,1};
-int ANIMATION_FLAVE[] = {0,0,10,1,8,3};
-int MENU_INDEX = 1;
-int MENU_SIZE = 3;
-int STATE = 0;
-char DATA;
-bool UPDATE_AVAILABLE = 1;
-int SNAKE[] = {2,2,2,0,0,0}; // x, y, z, same dir?, axis, dir
+int ANIMATION = 0;  // The current animation being displayed (for animationExecute())
+int NUM_OF_ANIMATIONS = 6;  // total number of animations (used for cycling)
+int ANIMATION_SPEED[] = {3,3,2,12,5,1}; // Individual animation speeds, adjusted with up/down (w/s)
+int ANIMATION_FLAVE[] = {0,0,10,1,8,3}; // Extra adjustable value for use in animations, adjusted with (u/j)
+int MENU_INDEX = 1; // Current menu select
+int MENU_SIZE = 3; // Size of the menu, used for scrolling
+int STATE = 0;  // Current main menu state
+char DATA;  // Used for reading from bluetooth
+bool UPDATE_AVAILABLE = 1;  // 
+int SNAKE[] = {2,2,2,0,0,0}; // x, y, z, same dir?, axis, dir (not yet used)
 
 void loop() {
 
@@ -711,6 +725,7 @@ void loop() {
   displayCube(1);
 }
 
+// This function is used to display and cycle through various animations
 int animationExecute()
 {
   int animationFrame = 0;
@@ -718,25 +733,32 @@ int animationExecute()
   bool j1 = 1;
   bool k1 = 0;
   int a = 0;
+  
+  // Executes until "Select" is pressed (char 'r')
   while(1)
   {
     if (Serial.available())
     {   
       DATA = Serial.read();
+      
+      // This switch checks which button was pressed and updates data accordingly
       switch(DATA){
         case 'r':
           return 0;
         break;
 
+        // 'w' increases the animation speed by decreasing the number of times a frame is displayed
         case 'w':
           if(ANIMATION_SPEED[ANIMATION] >2)
             ANIMATION_SPEED[ANIMATION]--;
         break;
 
+        // 's' decreases the animation speed by increasing the number of times a frame is displayed
         case 's':
           ANIMATION_SPEED[ANIMATION]++;
         break;
 
+        // 'a' cycles backward through the animations, updates ANIMATION
         case 'a':
         {
           ANIMATION--;
@@ -746,6 +768,7 @@ int animationExecute()
         }
         break;
 
+        // 'd' cycles forward through the animations, updates ANIMATION
         case 'd':
         {
           ANIMATION++;
@@ -755,10 +778,12 @@ int animationExecute()
         }
         break;
 
+        // 'u' increases the value of the current animation's ANIMATION_FLAVE
         case 'u':          
             ANIMATION_FLAVE[ANIMATION]++;
         break;
 
+        // 'j' decreases the value of the current animation's ANIMATION_FLAVE
         case 'j':
           if(ANIMATION_FLAVE[ANIMATION] >2)
             ANIMATION_FLAVE[ANIMATION]--;
@@ -769,6 +794,7 @@ int animationExecute()
       }
     }
 
+    // This switch statement is used to select the displayed animation based on the current ANIMATION value
     switch(ANIMATION)
     {
       case 0:
@@ -828,39 +854,40 @@ int animationExecute()
   }
 }
 
+// This function allows the user to navigate a blinking cursor on the cube using a controller
+// Inputs:
+//    'w': moves cursor horizontally away
+//    'a': moves cursor horizontally left
+//    's': moves cursor horizontally toward
+//    'd': moves cursor horizontally right
+//    'u': moves cursor vertically up
+//    'j': moves cursor vertically down
+//    'h': lights up an LED
+//    'k': turns off an LED
+//    'r': exits the drawing application
+//    't': executes Conway's game of Life. Press again to return to drawing
+//
+//    When 'h' is pressed and an LED is it up, its 5th bit is made a 1 to permanently mark
+//    it as a 1. 'k' is used to delete this marker.
 int drawExecute()
 {
   int cursorPos[]={1,1,1}; // The position of the cursor in the cube (x,y,z)
-//  int t2 = 1000;
-  unsigned int blink_count = 0;
+  unsigned int blink_count = 0; // Used for timing when blinking the cursor
   cubeClear();
   
   while(1)
   {
-    cubeDisplay[cursorPos[2]][cursorPos[1]][cursorPos[0]] &= B10000;
-//    Serial.print("Initial: ");
-//    Serial.print(cubeDisplay[cursorPos[2]][cursorPos[1]][cursorPos[0]]);
-//    Serial.print('\n');
-//    delay(t2);
-    int previousCursor[] =  {cursorPos[0],cursorPos[1],cursorPos[2]};
-    bool moved = 0;
+    cubeDisplay[cursorPos[2]][cursorPos[1]][cursorPos[0]] &= B10000; //Clear the lighting while leaving LED marker
 
-//    Serial.print("Initial: ");
-//    Serial.print(cubeDisplay[cursorPos[2]][cursorPos[1]][cursorPos[0]]);
-//    Serial.print('\n');
-//    delay(t2);
+    int previousCursor[] =  {cursorPos[0],cursorPos[1],cursorPos[2]};
+    bool moved = 0; // Used to indicate if the cursor has moved
     
     blink_count++;
-    blink_count %= 50;
+    blink_count %= 50; //The blink count is contained to values between 0 and 49
     if(blink_count<25)
       cubeDisplay[cursorPos[2]][cursorPos[1]][cursorPos[0]] |= B1111;
     else
       cubeDisplay[cursorPos[2]][cursorPos[1]][cursorPos[0]] &= B10000;
-
-//    Serial.print("Blink: ");
-//    Serial.print(cubeDisplay[cursorPos[2]][cursorPos[1]][cursorPos[0]]);
-//    Serial.print('\n');
-//    delay(t2);
     
     if(Serial.available())
     {
@@ -965,6 +992,7 @@ int drawExecute()
   }
 }
 
+// This function is used to cycle through the main menu, and select a function to execute
 int menuExecute()
 {
   while(1)
@@ -1002,6 +1030,7 @@ int menuExecute()
   }
 }
 
+// This function executes Conway's game of Life
 void executeConway()
 {
   int li, lj, lk, i2, j2, k2, conwayCount = 0, conwaySpeed = 5;
@@ -1103,6 +1132,7 @@ void executeConway()
     displayCube(conwaySpeed);
   }
 }
+
 
 void animationFillUpdate(int frame, bool i1, bool j1, bool k1, int a)
 {
@@ -1318,6 +1348,7 @@ void displayMenu()
     }
 }
 
+// This function is used to copy a 3D matrix to the cubeDisplay matrix
 void copySingleFrame(int copyMatrix[][4][4], int kLength)
 {
   int cx, cy, cz;
@@ -1333,6 +1364,7 @@ void copySingleFrame(int copyMatrix[][4][4], int kLength)
   }
 }
 
+// This function is used to copy a single frame of a  4D matrix to the cubeDisplay matrix
 void copyAnimationFrame(byte copyFrame[][4][4][4], int frame)
 {
   for(k=0;k<4;k++)
@@ -1351,7 +1383,6 @@ void copyAnimationFrame(byte copyFrame[][4][4][4], int frame)
 //inputs: number of times to display entire cube
 //outputs: none
 //uses functions: displayLayer
-
 void displayCube(int dispNum)
 {
   int a1;
@@ -1393,11 +1424,10 @@ void cubeClear()
 void displayLayer(int layer, int iteration)
 {
 
-  PORTB = B10000;
-      // Layer 1
-  PORTC = B100000;
-  writeLatch(1,layer,iteration);
-  PORTB = PORTB | B10100;
+  PORTB = B10000;                 // Turn on flip-flop's output disable
+  PORTC = B100000;                // Un-Ground all cube layers
+  writeLatch(1,layer,iteration);  // Write to first Flip-Flop
+  PORTB = PORTB | B10100;         // 
   writeLatch(2,layer,iteration);
   PORTB = PORTB | B11000;
   PORTB = B00000;
